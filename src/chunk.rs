@@ -51,8 +51,6 @@ impl Display for Chunk {
     }
 }
 
-const CRC32_ISO: Crc<u32> = Crc::<u32>::new(&CRC_32_ISO_HDLC);
-
 impl Chunk {
     fn new(chunk_type: ChunkType, data: Vec<u8>) -> Chunk {
         let crc = Chunk::calculate_crc(&chunk_type, &data);
@@ -96,8 +94,10 @@ impl Chunk {
             .collect()
     }
 
+    const CRC32_ISO: Crc<u32> = Crc::<u32>::new(&CRC_32_ISO_HDLC);
+
     fn calculate_crc(chunk_type: &ChunkType, data: &Vec<u8>) -> u32 {
-        CRC32_ISO.checksum(
+        Chunk::CRC32_ISO.checksum(
             &(chunk_type
                 .0
                 .iter()
