@@ -3,7 +3,8 @@ use std::str::FromStr;
 
 use crate::Error;
 
-pub(crate) struct ChunkType(pub [u8; 4]);
+#[derive(Clone)]
+pub struct ChunkType(pub [u8; 4]);
 
 impl TryFrom<[u8; 4]> for ChunkType {
     type Error = Error;

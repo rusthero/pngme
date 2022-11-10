@@ -6,11 +6,12 @@ use crc::{Crc, CRC_32_ISO_HDLC};
 use crate::chunk_type::ChunkType;
 use crate::Error;
 
-struct Chunk {
-    length: u32,
-    r#type: ChunkType,
-    data: Vec<u8>,
-    crc: u32,
+#[derive(Clone)]
+pub struct Chunk {
+    pub length: u32,
+    pub r#type: ChunkType,
+    pub data: Vec<u8>,
+    pub crc: u32,
 }
 
 impl TryFrom<&[u8]> for Chunk {
@@ -52,7 +53,7 @@ impl Display for Chunk {
 }
 
 impl Chunk {
-    fn new(chunk_type: ChunkType, data: Vec<u8>) -> Chunk {
+    pub(crate) fn new(chunk_type: ChunkType, data: Vec<u8>) -> Chunk {
         let crc = Chunk::calculate_crc(&chunk_type, &data);
 
         Chunk {
@@ -67,7 +68,7 @@ impl Chunk {
         self.length
     }
 
-    fn chunk_type(&self) -> &ChunkType {
+    pub(crate) fn chunk_type(&self) -> &ChunkType {
         &self.r#type
     }
 
@@ -79,11 +80,11 @@ impl Chunk {
         self.crc
     }
 
-    fn data_as_string(&self) -> Result<&str, Utf8Error> {
+    pub(crate) fn data_as_string(&self) -> Result<&str, Utf8Error> {
         std::str::from_utf8(&self.data)
     }
 
-    fn as_bytes(&self) -> Vec<u8> {
+    pub fn as_bytes(&self) -> Vec<u8> {
         self.length
             .to_be_bytes()
             .iter()
