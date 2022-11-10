@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use crate::Error;
 
-struct ChunkType([u8; 4]);
+pub(crate) struct ChunkType(pub [u8; 4]);
 
 impl TryFrom<[u8; 4]> for ChunkType {
     type Error = Error;
@@ -27,7 +27,11 @@ impl FromStr for ChunkType {
 
 impl Display for ChunkType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", core::str::from_utf8(&self.0).map_err(|_| std::fmt::Error::default())?)
+        write!(
+            f,
+            "{}",
+            core::str::from_utf8(&self.0).map_err(|_| std::fmt::Error::default())?
+        )
     }
 }
 
