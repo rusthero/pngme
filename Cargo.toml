@@ -5,4 +5,5 @@ authors = ["Karahan Buhan"]
 edition = "2021"
 
 [dependencies]
+clap = { version = "4.0.22", features = ["derive"] }
 crc = "3.0.0"

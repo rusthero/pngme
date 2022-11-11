@@ -31,20 +31,23 @@ impl Display for ChunkType {
         write!(
             f,
             "{}",
-            core::str::from_utf8(&self.0).map_err(|_| std::fmt::Error::default())?
+            core::str::from_utf8(&self.bytes()).map_err(|_| std::fmt::Error::default())?
         )
     }
 }
 
 impl Debug for ChunkType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", &self.0)
+        write!(f, "{:?}", &self.bytes())
     }
 }
 
 impl PartialEq<Self> for ChunkType {
     fn eq(&self, other: &Self) -> bool {
-        self.0.iter().zip(other.0.iter()).all(|(s, o)| s == o)
+        self.bytes()
+            .iter()
+            .zip(other.bytes().iter())
+            .all(|(s, o)| s == o)
     }
 }
 
@@ -58,19 +61,19 @@ impl ChunkType {
     }
 
     fn is_critical(&self) -> bool {
-        self.0[0].is_ascii_uppercase()
+        self.bytes()[0].is_ascii_uppercase()
     }
 
     fn is_public(&self) -> bool {
-        self.0[1].is_ascii_uppercase()
+        self.bytes()[1].is_ascii_uppercase()
     }
 
     fn is_reserved_bit_valid(&self) -> bool {
-        self.0[2].is_ascii_uppercase()
+        self.bytes()[2].is_ascii_uppercase()
     }
 
     fn is_safe_to_copy(&self) -> bool {
-        self.0[3].is_ascii_lowercase()
+        self.bytes()[3].is_ascii_lowercase()
     }
 }
 

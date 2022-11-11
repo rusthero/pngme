@@ -27,14 +27,14 @@ impl TryFrom<&[u8]> for Chunk {
         )?);
         let crc = crc
             .eq(&Chunk::calculate_crc(&r#type, &data))
-            .then(|| crc)
-            .ok_or(Error::from("invalid crc"))?;
+            .then_some(crc)
+            .ok_or_else(|| Error::from("invalid crc"))?;
 
         Ok(Chunk {
             length: length
                 .eq(&(data.len() as u32))
-                .then(|| length)
-                .ok_or(Error::from("invalid length"))?,
+                .then_some(length)
+                .ok_or_else(|| Error::from("invalid length"))?,
             r#type,
             data,
             crc,
@@ -64,22 +64,6 @@ impl Chunk {
         }
     }
 
-    fn length(&self) -> u32 {
-        self.length
-    }
-
-    pub(crate) fn chunk_type(&self) -> &ChunkType {
-        &self.r#type
-    }
-
-    fn data(&self) -> &[u8] {
-        &self.data
-    }
-
-    fn crc(&self) -> u32 {
-        self.crc
-    }
-
     pub(crate) fn data_as_string(&self) -> Result<&str, Utf8Error> {
         std::str::from_utf8(&self.data)
     }
@@ -97,7 +81,7 @@ impl Chunk {
 
     const CRC32_ISO: Crc<u32> = Crc::<u32>::new(&CRC_32_ISO_HDLC);
 
-    fn calculate_crc(chunk_type: &ChunkType, data: &Vec<u8>) -> u32 {
+    fn calculate_crc(chunk_type: &ChunkType, data: &[u8]) -> u32 {
         Chunk::CRC32_ISO.checksum(
             &(chunk_type
                 .0
@@ -142,20 +126,20 @@ mod tests {
             .as_bytes()
             .to_vec();
         let chunk = Chunk::new(chunk_type, data);
-        assert_eq!(chunk.length(), 42);
-        assert_eq!(chunk.crc(), 2882656334);
+        assert_eq!(chunk.length, 42);
+        assert_eq!(chunk.crc, 2882656334);
     }
 
     #[test]
     fn test_chunk_length() {
         let chunk = testing_chunk();
-        assert_eq!(chunk.length(), 42);
+        assert_eq!(chunk.length, 42);
     }
 
     #[test]
     fn test_chunk_type() {
         let chunk = testing_chunk();
-        assert_eq!(chunk.chunk_type().to_string(), String::from("RuSt"));
+        assert_eq!(chunk.r#type.to_string(), String::from("RuSt"));
     }
 
     #[test]
@@ -169,7 +153,7 @@ mod tests {
     #[test]
     fn test_chunk_crc() {
         let chunk = testing_chunk();
-        assert_eq!(chunk.crc(), 2882656334);
+        assert_eq!(chunk.crc, 2882656334);
     }
 
     #[test]
@@ -193,10 +177,10 @@ mod tests {
         let chunk_string = chunk.data_as_string().unwrap();
         let expected_chunk_string = String::from("This is where your secret message will be!");
 
-        assert_eq!(chunk.length(), 42);
-        assert_eq!(chunk.chunk_type().to_string(), String::from("RuSt"));
+        assert_eq!(chunk.length, 42);
+        assert_eq!(chunk.r#type.to_string(), String::from("RuSt"));
         assert_eq!(chunk_string, expected_chunk_string);
-        assert_eq!(chunk.crc(), 2882656334);
+        assert_eq!(chunk.crc, 2882656334);
     }
 
     #[test]

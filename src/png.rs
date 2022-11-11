@@ -1,12 +1,20 @@
 use std::fmt::{Display, Formatter};
-use std::io::Cursor;
+use std::fs;
+use std::path::PathBuf;
 
 use crate::chunk::Chunk;
 use crate::Error;
 
 #[derive(Clone)]
-struct Png {
-    chunks: Vec<Chunk>,
+pub struct Png {
+    pub chunks: Vec<Chunk>,
+}
+
+impl From<&PathBuf> for Png {
+    fn from(file: &PathBuf) -> Self {
+        let bytes = fs::read(file).expect("cannot read file");
+        Png::try_from(bytes.as_slice()).expect("file is not a valid png")
+    }
 }
 
 impl TryFrom<&[u8]> for Png {
@@ -17,15 +25,12 @@ impl TryFrom<&[u8]> for Png {
             return Err(Error::from("invalid png signature"));
         }
 
-        let mut chunks = Vec::<Chunk>::new();
-        let mut cur = 8usize;
+        let mut chunks = Vec::new();
+        let mut cur = 8;
 
         while cur < value.len() {
             let length = u32::from_be_bytes(<[u8; 4]>::try_from(&value[cur..cur + 4])?);
             chunks.push(Chunk::try_from(&value[cur..cur + length as usize + 12])?);
-            //let chunk_type = ChunkType::try_from(<[u8; 4]>::try_from(&value[cur + 4..cur + 8])?);
-            //let data = &value[cur + 8..cur + length as usize + 8];
-            //let crc = &value[cur + 8 + length as usize..cur + length as usize + 12];
             cur += length as usize + 12;
         }
 
@@ -50,21 +55,17 @@ impl Display for Png {
 impl Png {
     pub const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 
-    fn from_chunks(chunks: Vec<Chunk>) -> Png {
-        Png { chunks }
-    }
-
-    fn append_chunk(&mut self, chunk: Chunk) {
+    pub fn append_chunk(&mut self, chunk: Chunk) {
         self.chunks.push(chunk);
     }
 
-    fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk, Error> {
+    pub fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk, Error> {
         Ok(self.chunks.remove(
             self.clone()
                 .chunks
                 .into_iter()
-                .position(|chunk| chunk.r#type.to_string().eq(chunk_type))
-                .ok_or(Error::from("cannot remove: chunk does not exist"))?,
+                .position(|chunk| chunk.r#type.to_string() == (chunk_type))
+                .ok_or_else(|| Error::from("cannot remove: chunk does not exist"))?,
         ))
     }
 
@@ -72,17 +73,10 @@ impl Png {
         &Png::STANDARD_HEADER
     }
 
-    fn chunks(&self) -> &[Chunk] {
-        &self.chunks
-    }
-
-    fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
-        for chunk in &self.chunks {
-            if chunk.r#type.to_string().eq(chunk_type) {
-                return Some(chunk);
-            }
-        }
-        None
+    pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
+        self.chunks
+            .iter()
+            .find(|&chunk| chunk.r#type.to_string().eq(chunk_type))
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
@@ -104,18 +98,16 @@ mod tests {
     use super::*;
 
     fn testing_chunks() -> Vec<Chunk> {
-        let mut chunks = Vec::new();
-
-        chunks.push(chunk_from_strings("FrSt", "I am the first chunk").unwrap());
-        chunks.push(chunk_from_strings("miDl", "I am another chunk").unwrap());
-        chunks.push(chunk_from_strings("LASt", "I am the last chunk").unwrap());
-
-        chunks
+        vec![
+            chunk_from_strings("FrSt", "I am the first chunk").unwrap(),
+            chunk_from_strings("miDl", "I am another chunk").unwrap(),
+            chunk_from_strings("LASt", "I am the last chunk").unwrap(),
+        ]
     }
 
     fn testing_png() -> Png {
         let chunks = testing_chunks();
-        Png::from_chunks(chunks)
+        Png { chunks }
     }
 
     fn chunk_from_strings(chunk_type: &str, data: &str) -> Result<Chunk, Error> {
@@ -130,9 +122,9 @@ mod tests {
     #[test]
     fn test_from_chunks() {
         let chunks = testing_chunks();
-        let png = Png::from_chunks(chunks);
+        let png = Png { chunks };
 
-        assert_eq!(png.chunks().len(), 3);
+        assert_eq!(png.chunks.len(), 3);
     }
 
     #[test]
@@ -148,7 +140,7 @@ mod tests {
             .copied()
             .collect();
 
-        let png = Png::try_from(bytes.as_ref());
+        let png = Png::try_from(&*bytes);
 
         assert!(png.is_ok());
     }
@@ -166,7 +158,7 @@ mod tests {
             .copied()
             .collect();
 
-        let png = Png::try_from(bytes.as_ref());
+        let png = Png::try_from(&*bytes);
 
         assert!(png.is_err());
     }
@@ -188,7 +180,7 @@ mod tests {
 
         chunk_bytes.append(&mut bad_chunk);
 
-        let png = Png::try_from(chunk_bytes.as_ref());
+        let png = Png::try_from(&*chunk_bytes);
 
         assert!(png.is_err());
     }
@@ -196,7 +188,7 @@ mod tests {
     #[test]
     fn test_list_chunks() {
         let png = testing_png();
-        let chunks = png.chunks();
+        let chunks = png.chunks;
         assert_eq!(chunks.len(), 3);
     }
 
@@ -204,7 +196,7 @@ mod tests {
     fn test_chunk_by_type() {
         let png = testing_png();
         let chunk = png.chunk_by_type("FrSt").unwrap();
-        assert_eq!(&chunk.chunk_type().to_string(), "FrSt");
+        assert_eq!(&chunk.r#type.to_string(), "FrSt");
         assert_eq!(chunk.data_as_string().unwrap(), "I am the first chunk");
     }
 
@@ -213,7 +205,7 @@ mod tests {
         let mut png = testing_png();
         png.append_chunk(chunk_from_strings("TeSt", "Message").unwrap());
         let chunk = png.chunk_by_type("TeSt").unwrap();
-        assert_eq!(&chunk.chunk_type().to_string(), "TeSt");
+        assert_eq!(&chunk.r#type.to_string(), "TeSt");
         assert_eq!(chunk.data_as_string().unwrap(), "Message");
     }
 
@@ -236,7 +228,7 @@ mod tests {
     fn test_as_bytes() {
         let png = Png::try_from(&PNG_FILE[..]).unwrap();
         let actual = png.as_bytes();
-        let expected: Vec<u8> = PNG_FILE.iter().copied().collect();
+        let expected: Vec<u8> = PNG_FILE.to_vec();
         assert_eq!(actual, expected);
     }
 
@@ -253,7 +245,7 @@ mod tests {
             .copied()
             .collect();
 
-        let png: Png = TryFrom::try_from(bytes.as_ref()).unwrap();
+        let png: Png = Png::try_from(&*bytes).unwrap();
 
         let _png_string = format!("{}", png);
     }
