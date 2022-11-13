@@ -43,7 +43,7 @@ jobs:
       - name: Name Release
         if: startsWith(github.ref, 'refs/tags/')
         id: name_release
-        run: echo ::set-output name=RELEASE::helium-wallet-${GITHUB_REF/refs\/tags\//}-x86-64-linux
+        run: echo ::set-output name=RELEASE::pngme-${GITHUB_REF/refs\/tags\//}-x86-64-linux
 
       - name: Prepare Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -51,7 +51,7 @@ jobs:
           NAME: ${{ steps.name_release.outputs.RELEASE }}
         run: |
           mkdir $NAME
-          mv target/release/helium-wallet $NAME/
+          mv target/release/pngme-wallet $NAME/
           cp README.md $NAME/
           cp LICENSE $NAME/
           tar -zcvf $NAME.tar.gz $NAME/
@@ -89,7 +89,7 @@ jobs:
       - name: Name Release
         if: startsWith(github.ref, 'refs/tags/')
         id: name_release
-        run: echo ::set-output name=RELEASE::helium-wallet-${GITHUB_REF/refs\/tags\//}-x86-64-macos
+        run: echo ::set-output name=RELEASE::pngme-${GITHUB_REF/refs\/tags\//}-x86-64-macos
 
       - name: Prepare Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -97,7 +97,7 @@ jobs:
           NAME: ${{ steps.name_release.outputs.RELEASE }}
         run: |
           mkdir $NAME
-          mv target/release/helium-wallet $NAME/
+          mv target/release/pngme $NAME/
           cp README.md $NAME/
           cp LICENSE $NAME/
           gtar -zcvf $NAME.tar.gz $NAME/
@@ -149,7 +149,7 @@ jobs:
       - name: Name Release
         if: startsWith(github.ref, 'refs/tags/')
         id: name_release
-        run: echo ::set-output name=RELEASE::helium-wallet-${GITHUB_REF/refs\/tags\//}-x86-64-win
+        run: echo ::set-output name=RELEASE::pngme-${GITHUB_REF/refs\/tags\//}-x86-64-win
         shell: bash
 
       - name: Prepare Release
@@ -158,7 +158,7 @@ jobs:
           NAME: ${{ steps.name_release.outputs.RELEASE }}
         run: |
           mkdir $env:NAME
-          mv target/release/helium-wallet.exe $env:NAME/
+          mv target/release/pngme.exe $env:NAME/
           cp README.md $env:NAME/
           cp LICENSE $env:NAME/
           7z a "$env:NAME.zip" "$env:NAME/"
