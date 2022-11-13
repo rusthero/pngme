@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::fs;
+use std::io::Read;
 use std::path::PathBuf;
 
 use crate::chunk::Chunk;
@@ -13,6 +14,7 @@ pub struct Png {
 impl From<&PathBuf> for Png {
     fn from(file: &PathBuf) -> Self {
         let bytes = fs::read(file).expect("cannot read file");
+
         Png::try_from(bytes.as_slice()).expect("file is not a valid png")
     }
 }
@@ -69,10 +71,6 @@ impl Png {
         ))
     }
 
-    fn header(&self) -> &[u8; 8] {
-        &Png::STANDARD_HEADER
-    }
-
     pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
         self.chunks
             .iter()
@@ -80,11 +78,16 @@ impl Png {
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
-        let mut res = vec![self.header().to_vec()];
-        for chunk in &self.chunks {
-            res.push(chunk.as_bytes());
-        }
-        res.into_iter().flatten().collect::<Vec<u8>>()
+        Png::STANDARD_HEADER
+            .iter()
+            .copied()
+            .chain(
+                self.chunks
+                    .iter()
+                    .flat_map(|chunk| chunk.as_bytes())
+                    .collect::<Vec<u8>>(),
+            )
+            .collect()
     }
 }
 

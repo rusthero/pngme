@@ -73,10 +73,10 @@ fn main() {
 
             println!(
                 "{}",
-                match fs::write(file, png.as_bytes()) {
-                    Ok(_) => "Successfully added secret message!".to_owned(),
-                    Err(err) => format!("Cannot add secret message: {}", err),
-                }
+                fs::write(file, png.as_bytes()).map_or_else(
+                    |_| "Successfully added secret message!",
+                    |_| "Cannot add secret message",
+                )
             );
         }
 
@@ -87,8 +87,7 @@ fn main() {
                 .unwrap_or_else(|| panic!("Chunk with type {} does not exist.", chunk_type));
 
             println!(
-                "secret message in chunk {}: {}",
-                chunk.r#type,
+                "{}",
                 chunk.data_as_string().expect("data is not an utf-8 string")
             );
         }

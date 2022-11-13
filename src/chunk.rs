@@ -20,7 +20,7 @@ impl TryFrom<&[u8]> for Chunk {
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let length = u32::from_be_bytes(<[u8; 4]>::try_from(&value[0..4])?);
         let r#type = ChunkType::try_from(<[u8; 4]>::try_from(&value[4..8])?)?;
-        let data = value[8..value.len() - 4].to_vec();
+        let data = value[8..value.len().saturating_sub(4)].to_vec();
 
         let crc = u32::from_be_bytes(<[u8; 4]>::try_from(
             &value[value.len().saturating_sub(4)..value.len()],
@@ -72,7 +72,7 @@ impl Chunk {
         self.length
             .to_be_bytes()
             .iter()
-            .chain(self.r#type.0.iter())
+            .chain(self.r#type.bytes().iter())
             .chain(self.data.iter())
             .chain(self.crc.to_be_bytes().iter())
             .copied()
@@ -84,7 +84,7 @@ impl Chunk {
     fn calculate_crc(chunk_type: &ChunkType, data: &[u8]) -> u32 {
         Chunk::CRC32_ISO.checksum(
             &(chunk_type
-                .0
+                .bytes()
                 .iter()
                 .chain(data.iter())
                 .copied()
