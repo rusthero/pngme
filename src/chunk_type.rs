@@ -4,7 +4,22 @@ use std::str::FromStr;
 use crate::Error;
 
 #[derive(Clone)]
-pub struct ChunkType(pub [u8; 4]);
+pub struct ChunkType([u8; 4]);
+
+impl ChunkType {
+    pub fn bytes(&self) -> [u8; 4] {
+        self.0
+    }
+}
+
+impl PartialEq<Self> for ChunkType {
+    fn eq(&self, other: &Self) -> bool {
+        self.bytes()
+            .iter()
+            .zip(other.bytes().iter())
+            .all(|(s, o)| s == o)
+    }
+}
 
 impl TryFrom<[u8; 4]> for ChunkType {
     type Error = Error;
@@ -39,21 +54,6 @@ impl Display for ChunkType {
 impl Debug for ChunkType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", &self.bytes())
-    }
-}
-
-impl PartialEq<Self> for ChunkType {
-    fn eq(&self, other: &Self) -> bool {
-        self.bytes()
-            .iter()
-            .zip(other.bytes().iter())
-            .all(|(s, o)| s == o)
-    }
-}
-
-impl ChunkType {
-    pub fn bytes(&self) -> [u8; 4] {
-        self.0
     }
 }
 

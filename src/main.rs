@@ -112,6 +112,8 @@ fn main() {
             );
         }
 
-        None => {}
+        None => {
+            unreachable!();
+        }
     };
 }
