@@ -7,7 +7,6 @@ description = "Command line program that lets you hide secret messages in PNG fi
 readme = "https://github.com/karahanbuhan/pngme/blob/master/README.md"
 repository = "https://github.com/karahanbuhan/pngme"
 license = "MIT License"
-license-file = "LICENSE"
 
 [dependencies]
 clap = { version = "4.0.22", features = ["derive"] }
