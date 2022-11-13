@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::io::Read;
 use std::path::PathBuf;
 
 use crate::chunk::Chunk;
