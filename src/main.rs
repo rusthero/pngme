@@ -11,9 +11,7 @@ use crate::png::Png;
 mod chunk;
 mod chunk_type;
 mod png;
-
-pub type Error = Box<dyn std::error::Error>;
-pub type Result<T> = std::result::Result<T, Error>;
+mod util;
 
 /// Hide secret messages in PNG files.
 #[derive(Parser)]
@@ -65,37 +63,31 @@ fn main() {
             message,
         }) => {
             let mut png = Png::from(file);
-
             png.append_chunk(Chunk::new(
-                ChunkType::from_str(chunk_type).expect("cannot create chunk"),
+                ChunkType::from_str(chunk_type).expect("Cannot create chunk"),
                 message.clone().into_bytes(),
             ));
+            fs::write(file, png.as_bytes()).expect("Cannot write PNG file");
 
-            println!(
-                "{}",
-                fs::write(file, png.as_bytes()).map_or_else(
-                    |_| "Successfully added secret message!",
-                    |_| "Cannot add secret message",
-                )
-            );
+            println!("Successfully added a secret message to file");
         }
 
         Some(Commands::Decode { file, chunk_type }) => {
             let png = Png::from(file);
-            let chunk = png
-                .chunk_by_type(chunk_type)
-                .unwrap_or_else(|| panic!("Chunk with type {} does not exist.", chunk_type));
+            let chunk = png.chunk_by_type(chunk_type).expect("Chunk does not exist");
 
             println!(
                 "{}",
-                chunk.data_as_string().expect("data is not an utf-8 string")
+                chunk
+                    .data_as_string()
+                    .expect("Chunk data is not in UTF-8 format")
             );
         }
 
         Some(Commands::Remove { file, chunk_type }) => {
-            let removed_chunk = Png::from(file)
-                .remove_chunk(chunk_type)
-                .expect("Cannot remove chunk.");
+            let mut png = Png::from(file);
+            let removed_chunk = png.remove_chunk(chunk_type).expect("Cannot remove chunk");
+            fs::write(file, png.as_bytes()).expect("Cannot write PNG file");
 
             println!("Chunk {} is successfully removed!", removed_chunk.r#type);
         }

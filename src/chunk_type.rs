@@ -1,7 +1,8 @@
+use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
-use crate::Error;
+use anyhow::{ensure, Context, Error};
 
 #[derive(Clone)]
 pub struct ChunkType([u8; 4]);
@@ -24,7 +25,7 @@ impl PartialEq<Self> for ChunkType {
 impl TryFrom<[u8; 4]> for ChunkType {
     type Error = Error;
 
-    fn try_from(value: [u8; 4]) -> Result<Self, Self::Error> {
+    fn try_from(value: [u8; 4]) -> Result<Self, Error> {
         Ok(ChunkType(value))
     }
 }
@@ -32,27 +33,28 @@ impl TryFrom<[u8; 4]> for ChunkType {
 impl FromStr for ChunkType {
     type Err = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.chars().all(|c| c.is_ascii_alphabetic()) {
-            Ok(ChunkType(s.as_bytes().try_into()?))
-        } else {
-            Err(Error::from("type is not ascii alphabetic"))
-        }
+    fn from_str(s: &str) -> Result<Self, Error> {
+        ensure!(
+            s.chars().all(|c| c.is_ascii_alphabetic()),
+            "Invalid chunk type, chunk types must only consist of ASCII Alphabetic (a-Z) characters"
+        );
+
+        Ok(ChunkType(s.as_bytes().try_into().context(
+            "Chunk types must have a size of 4 bytes (4 UTF-8 characters)",
+        )?))
     }
 }
 
 impl Display for ChunkType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            core::str::from_utf8(&self.bytes()).map_err(|_| std::fmt::Error::default())?
-        )
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        use core::str::from_utf8;
+
+        write!(f, "{}", from_utf8(&self.bytes()).map_err(|_| fmt::Error)?)
     }
 }
 
 impl Debug for ChunkType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", &self.bytes())
     }
 }

@@ -2,8 +2,10 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
 
+use anyhow::{ensure, Context, Error};
+
 use crate::chunk::Chunk;
-use crate::Error;
+use crate::util::slice_4_bytes;
 
 #[derive(Clone)]
 pub struct Png {
@@ -12,25 +14,26 @@ pub struct Png {
 
 impl From<&PathBuf> for Png {
     fn from(file: &PathBuf) -> Self {
-        let bytes = fs::read(file).expect("cannot read file");
+        let bytes = fs::read(file).expect("Cannot read PNG file");
 
-        Png::try_from(bytes.as_slice()).expect("file is not a valid png")
+        Png::try_from(bytes.as_slice()).expect("File is not a valid PNG")
     }
 }
 
 impl TryFrom<&[u8]> for Png {
     type Error = Error;
 
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        if !<[u8; 8]>::try_from(&value[0..8])?.eq(&Png::STANDARD_HEADER) {
-            return Err(Error::from("invalid png signature"));
-        }
+    fn try_from(value: &[u8]) -> Result<Self, Error> {
+        ensure!(
+            <[u8; 8]>::try_from(&value[0..8])? == Png::STANDARD_HEADER,
+            "Invalid PNG file signature: first eight bytes are not [137 80 78 71 13 10 26 10] (decimal)"
+        );
 
         let mut chunks = Vec::new();
         let mut cur = 8;
 
         while cur < value.len() {
-            let length = u32::from_be_bytes(<[u8; 4]>::try_from(&value[cur..cur + 4])?);
+            let length = u32::from_be_bytes(slice_4_bytes(value, cur)?);
             chunks.push(Chunk::try_from(&value[cur..cur + length as usize + 12])?);
             cur += length as usize + 12;
         }
@@ -66,26 +69,21 @@ impl Png {
                 .chunks
                 .into_iter()
                 .position(|chunk| chunk.r#type.to_string() == (chunk_type))
-                .ok_or_else(|| Error::from("cannot remove: chunk does not exist"))?,
+                .context("Chunk does not exist")?,
         ))
     }
 
     pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
         self.chunks
             .iter()
-            .find(|&chunk| chunk.r#type.to_string().eq(chunk_type))
+            .find(|&chunk| chunk.r#type.to_string() == chunk_type)
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
         Png::STANDARD_HEADER
             .iter()
             .copied()
-            .chain(
-                self.chunks
-                    .iter()
-                    .flat_map(|chunk| chunk.as_bytes())
-                    .collect::<Vec<u8>>(),
-            )
+            .chain(self.chunks.iter().flat_map(|chunk| chunk.as_bytes()))
             .collect()
     }
 }

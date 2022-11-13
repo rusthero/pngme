@@ -1,10 +1,11 @@
+use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::str::Utf8Error;
 
+use anyhow::{ensure, Context, Error, Result};
 use crc::{Crc, CRC_32_ISO_HDLC};
 
 use crate::chunk_type::ChunkType;
-use crate::Error;
+use crate::util::slice_4_bytes;
 
 #[derive(Clone)]
 pub struct Chunk {
@@ -26,8 +27,10 @@ impl Chunk {
         }
     }
 
-    pub(crate) fn data_as_string(&self) -> Result<&str, Utf8Error> {
-        std::str::from_utf8(&self.data)
+    pub(crate) fn data_as_string(&self) -> Result<&str> {
+        use std::str::from_utf8;
+
+        from_utf8(&self.data).context("Chunk data cannot be converted to UTF-8")
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
@@ -58,24 +61,24 @@ impl Chunk {
 impl TryFrom<&[u8]> for Chunk {
     type Error = Error;
 
-    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let length = u32::from_be_bytes(<[u8; 4]>::try_from(&value[0..4])?);
-        let r#type = ChunkType::try_from(<[u8; 4]>::try_from(&value[4..8])?)?;
+    fn try_from(value: &[u8]) -> Result<Self, Error> {
+        let length = u32::from_be_bytes(slice_4_bytes(value, 0)?);
+        let r#type = ChunkType::try_from(slice_4_bytes(value, 4)?)?;
         let data = value[8..value.len().saturating_sub(4)].to_vec();
+        let crc = u32::from_be_bytes(slice_4_bytes(value, value.len().saturating_sub(4))?);
 
-        let crc = u32::from_be_bytes(<[u8; 4]>::try_from(
-            &value[value.len().saturating_sub(4)..value.len()],
-        )?);
-        let crc = crc
-            .eq(&Chunk::calculate_crc(&r#type, &data))
-            .then_some(crc)
-            .ok_or_else(|| Error::from("invalid crc"))?;
+        ensure!(
+            length == data.len() as u32,
+            "Invalid length, size of chunk data and its length field do not match"
+        );
+
+        ensure!(
+            crc == Chunk::calculate_crc(&r#type, &data),
+            "Invalid CRC, chunk type, data and their CRC do not match"
+        );
 
         Ok(Chunk {
-            length: length
-                .eq(&(data.len() as u32))
-                .then_some(length)
-                .ok_or_else(|| Error::from("invalid length"))?,
+            length,
             r#type,
             data,
             crc,
@@ -84,7 +87,7 @@ impl TryFrom<&[u8]> for Chunk {
 }
 
 impl Display for Chunk {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "length: {}, type: {}, data: {:?}, crc: {}",
