@@ -1,5 +1,4 @@
-# pngme <a href="https://github.com/rusthero/pngme/releases"> <img src="https://img.shields.io/github/release/rusthero/pngme?style=flat&labelColor=1C2C2E&color=D0A384&logo=GitHub&logoColor=white"></a>
-
+# pngme <a href="https://github.com/rusthero/pngme/releases"><img src="https://img.shields.io/github/release/rusthero/pngme?style=flat&height=30&labelColor=1C2C2E&color=C36241&logo=GitHub&logoColor=white"></a>
 Command line program that lets you hide secret messages in PNG files.
 
 ## About
