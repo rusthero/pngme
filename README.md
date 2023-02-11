@@ -1,4 +1,5 @@
-# pngme
+# pngme <a href="https://github.com/rusthero/TimingComparator/releases"> <img src="https://img.shields.io/github/release/rusthero/TimingComparator?style=flat&labelColor=1C2C2E&color=D0A384&logo=GitHub&logoColor=white"></a>
+
 Command line program that lets you hide secret messages in PNG files.
 
 ## About
