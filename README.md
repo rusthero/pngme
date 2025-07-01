@@ -4,8 +4,6 @@ Command line program that lets you hide secret messages in PNG files.
 ## About
 **pngme** is a [Command Line Interface](https://en.wikipedia.org/wiki/Command-line_interface) to modify [chunks of PNG files](http://www.libpng.org/pub/png/spec/1.2/PNG-Structure.html).
 
-I did not come up with the idea for this program but [picklenerd](https://picklenerd.github.io/pngme_book/) did. This is my implementation of the book for learning purposes as a toy project, feel free to use or send pull requests!
-
 ![pngme](https://user-images.githubusercontent.com/83908403/201533876-e714383a-b398-4297-88f4-b11a41c7ff97.png)
 
 ## Usage
